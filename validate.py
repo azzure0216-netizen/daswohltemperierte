@@ -1,7 +1,7 @@
 """Check generated links, canonical URLs and feeds before publishing."""
 from pathlib import Path
 from html.parser import HTMLParser
-from urllib.parse import urlsplit, unquote
+from urllib.parse import urlsplit, unquote, quote
 import json
 import os
 import xml.etree.ElementTree as ET
@@ -57,7 +57,7 @@ for file, page in pages.items():
     assert page.base == BASE, (file, 'wrong reader base path')
     relative = '/' + file.relative_to(OUT).as_posix()
     if relative.endswith('/index.html'): relative = relative[:-10]
-    assert page.canonical == SITE + relative, (file, 'wrong canonical', page.canonical)
+    assert page.canonical == SITE + quote(relative, safe='/'), (file, 'wrong canonical', page.canonical)
     for raw in page.links:
         link = urlsplit(raw)
         if link.scheme or link.netloc: continue
@@ -66,7 +66,7 @@ for file, page in pages.items():
         else:
             assert link.path.startswith(BASE + '/'), (file, 'unprefixed link', raw)
             local = link.path[len(BASE):]
-            target = OUT / local.lstrip('/')
+            target = OUT / unquote(local.lstrip('/'))
             if local.endswith('/'): target = target / 'index.html'
         assert target.exists(), (file, 'broken link', raw)
         if link.fragment and target in pages and link.fragment != 'resume':

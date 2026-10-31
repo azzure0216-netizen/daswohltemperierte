@@ -14,3 +14,6 @@
 @media(max-width:1000px){.brand{font-size:24px}.footer{grid-template-columns:1fr auto}}
 @media(max-width:700px){.header{align-items:flex-start;flex-direction:column;gap:14px}.brand{font-size:24px;gap:10px;letter-spacing:-.7px}.brand-mark{font-size:22px;width:27px}.header nav{width:100%;justify-content:flex-end;gap:26px}.footer{grid-template-columns:1fr}.footer-brand{font-size:22px}.hero{padding-top:22px}}
 @media(max-width:360px){.brand{font-size:21px}.brand-mark{width:22px;font-size:20px}}
+
+/* The cover reads its title, subtitle and author from content/site.json. */
+.book-cover .cover-title{top:32%}.book-cover .cover-title .cover-book-title{font-family:Georgia,"Times New Roman",serif;font-size:clamp(22px,14.5cqw,58px);letter-spacing:-.055em;line-height:1.2;white-space:nowrap;margin-top:17px}.book-cover .cover-subtitle{display:block;font-family:"Songti SC",SimSun,serif;font-size:clamp(9px,3.2cqw,13px);letter-spacing:.12em;line-height:1.8;margin-top:clamp(12px,5cqw,24px);color:#fff}.book-cover .cover-author{margin-top:clamp(12px,7cqw,30px)}
