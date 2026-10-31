@@ -1,74 +1,68 @@
-# daswohltemperierte · GitHub Pages 版
+# daswohltemperierte · Mismatch
 
-个人长篇小说网站第一版：橙白极简首页、作品目录、独立章节页、手机排版、阅读设置、本机阅读进度、收藏、RSS 和搜索收录基础配置。
+橙白极简的个人长篇小说网站。作品为 Mismatch，副标题为“不要小瞧事实婚姻”，署名为 Azzure3。
 
-站名已确定为 `daswohltemperierte`。白色为页面底色，橙色用于标题、链接、封面与按钮。封面和《长夜来信》仍为演示内容，正式笔名与小说尚待替换。独立域名尚未绑定。
+## 直接粘贴章节
 
-## 在你的仓库启用网站
+在网站页脚点击 **章节管理**。每章的“粘贴／修改正文”会打开 GitHub 编辑器：
 
-目标仓库：[azzure0216-netizen/daswohltemperierte](https://github.com/azzure0216-netizen/daswohltemperierte)。
+1. 登录拥有仓库写入权限的 GitHub 账号。
+2. 选择要更新的章节，全选编辑器中的文件内容。
+3. 粘贴完整章节：第一行是标题，下面是正文。
+4. 点击 **Commit changes**，提交到 `main`，确认保存。
+5. 在 **Actions → Publish novel website** 等待绿色勾号，再刷新网站。
 
-1. 打开上述仓库，确认根目录能看到 `README.md`、`build.py`、`style.css`、`content` 等文件。
-2. 点击仓库顶部 **Settings**，在左侧找到 **Pages**。
-3. 在 **Build and deployment** 下，将 **Source** 设为 **GitHub Actions**。
-4. 回到仓库顶部 **Actions**，选择左侧 **Publish novel website**，点击右侧 **Run workflow**，分支选择 `main`，再点击绿色 **Run workflow** 按钮。如果第一次提交在 Pages 开启前运行失败，开启后重新运行即可。
-5. 等工作流中 `build` 和 `deploy` 都显示绿色勾号。打开 **Settings → Pages**，点击 GitHub 提供的 **Visit site**。该链接才是已部署网站的正式验证入口。
-6. 以后提交到 `main` 会自动检查并重新发布，不必每次手动运行。
+没有提交的编辑不会发布；提交到 main 的正文将公开出现在网站上。
 
-如果是手动上传本包：解压后，进入外层文件夹，把内部文件和目录上传到仓库根目录，而不是直接上传 ZIP 文件，也不要多套一层 `daswohltemperierte-github-pages` 文件夹。必须包含 `.github/workflows/pages.yml`。macOS Finder 可用 **Command + Shift + .** 显示点开头目录，然后使用 **Add file → Upload files → Commit changes**。
+```text
+第一章 你的章节标题
 
-## 如何修改文字、更新章节
+这是第一段正文。
 
-1. 在仓库点击 `content`，再点击 `site.json`。
-2. 点击右上角铅笔 **Edit this file**。
-3. 在 `works[0].chapters` 里修改章节标题和正文。`paragraphs` 中每个引号包起来的字符串就是一段，使用英文双引号与英文逗号；正文里如果有英文双引号，需要写成 `\"`，中文引号“”可以直接使用。
-4. 新增章节时，在最后一个章节对象后加英文逗号，然后添加下列对象；最后一个对象后面不加逗号：
-
-```json
-{
-  "slug": "04",
-  "title": "第四章的标题",
-  "date": "2026-10-31",
-  "paragraphs": [
-    "这是第一段正文。",
-    "这是第二段正文。"
-  ]
-}
+这是第二段正文。
 ```
 
-5. 点击 **Commit changes**，选择提交到 `main`，再次确认提交。之后到 **Actions** 等待绿色勾号。
-6. 打开网站检查新章节。未更新时先确认工作流成功，再刷新页面。
+正文按换行分段，空行可有可无。标题也可以写成 `# 第一章 你的章节标题`。正文按普通文字显示，不将正文中的 HTML 当作网页代码运行。
 
-章节 `slug` 是分享网址的一部分，已发布后尽量不改；新章使用新的编号。`date` 使用你实际发布的日期。章节数、目录、翻页、字数、RSS 和站点地图会自动更新。
+日期可选，在标题下方写 `日期：2026-10-31`；不填也能发布。
 
-演示章节的 `notice` 字段用于演示提示；正式章节可以不写这个字段。正文第一段已经按正常正文处理，不会被误作提示。
+## 新增章节
 
-首次换上你的整部小说时，请统一替换演示简介、封面文字和演示标识；目前部分首版展示文案仍在 `build.py`。可以先把小说发给助手完成首次替换，之后按上述步骤追加章节。
+“章节管理”顶部点击 **新增第 N 章**，入口会预填下一个编号的文件名。保留数字加 `.md` 的文件名，例如 `04.md`，再粘贴标题和正文并提交。
 
-## 独立域名
+章节位于 `chapters/`，按数字编号自动排序。目录、字数、翻页、RSS 和站点地图会自动更新，日常更新正文不需要修改 JSON。
 
-1. 先持有要使用的域名。
-2. 在 **Settings → Pages → Custom domain** 填入域名并保存，再按 GitHub 官方文档配置 DNS。DNS 目标要按你的账号、域名类型核对，不使用本站临时地址。
-3. 等待 DNS 检查和证书完成后，启用 **Enforce HTTPS**，重新运行工作流。
-4. 工作流读取 Pages 的实际网址，自动更新页面链接、canonical、站点地图和 RSS；既支持个人主页，也支持 `/仓库名/` 子路径与独立域名。
+已发布文件的编号尽量保持不变。`01.md` 与 `001.md` 是相同编号，不要同时存在。标题或正文为空、日期格式不正确等情况会阻止新版本发布；网站继续使用上一个成功版本。
 
-本项目通过 GitHub Actions 发布。自定义域名必须在 Pages 设置中配置，单独添加 `CNAME` 文件不能代替该设置。
+首批三个章节为网站演示内容。全选替换为你的完整章节时，移除原有 `【演示文本】` 提示，演示标记会自动消失。尚未替换的演示章节会继续保留标记。
 
-## 以后怎样更新
+## 修改封面与作品资料
 
-- 编辑 `content/site.json`，提交到 `main`；Actions 自动生成并发布。
-- `name` 是站名，`author` 是公开笔名；作品信息在 `works[0]`，章节在 `chapters`。
-- 当前只有一部长篇，暂不支持仅通过追加 JSON 自动生成第二部作品。
-- 每章的 `slug` 是稳定网址的一部分，发布后尽量不改。
-- 部分首版封面、文案和演示标识写在 `build.py` 中，改正式作品时应一并替换，不能只改 JSON。
-- `origin` 默认留空；GitHub Actions 从 Pages 设置中取得实际网址，无需填写你的用户名。
-- 本版没有可登录的作者后台。你可以在 GitHub 网页编辑内容，或让助手继续帮你整理、提交章节。
+编辑 `content/site.json`：
 
-阅读进度和收藏只存在读者的当前浏览器，不能跨设备同步。
+| 字段 | 内容 |
+| --- | --- |
+| `name` | 网站名称 |
+| `author` | 作者署名 |
+| `works[0].title` | 小说名称与封面标题 |
+| `works[0].subtitle` | 封面副标题 |
+| `works[0].description` | 作品简介 |
+| `works[0].status` | 连载状态 |
+| `works[0].tags` | 作品标签 |
 
-## 本地预览（可选）
+首页大标题等展示文案目前仍在 `build.py`，正文已经改为读取 `chapters/` 中的独立文件。
 
-需要 Python 3.12 或更新版本；无需安装第三方包。
+## 启用 Pages 与独立域名
+
+在 **Settings → Pages → Source** 选择 **GitHub Actions**，再到 **Actions → Publish novel website → Run workflow** 运行一次，分支选 main。成功后在 **Settings → Pages → Visit site** 查看网站。
+
+以后提交到 main 自动发布。工作流读取 Pages 的实际网址，支持仓库子路径与独立域名。
+
+独立域名在 **Settings → Pages → Custom domain** 中配置，按 GitHub 要求填写 DNS，证书生效后启用 **Enforce HTTPS** 并重新运行工作流。当前尚未指定或绑定独立域名。
+
+## 技术与本地检查
+
+Python 3.12 或更新版本，无第三方 Python 依赖：
 
 ```bash
 python3 build.py
@@ -76,28 +70,6 @@ python3 validate.py
 python3 -m http.server 8000 --directory dist
 ```
 
-在浏览器打开 `http://localhost:8000/`。不要直接双击 HTML 文件。
+输出为静态 HTML/CSS/JavaScript。阅读进度、收藏和排版偏好只保存在读者当前浏览器。章节管理页提供 GitHub 编辑入口，不保存密码或令牌；只有拥有仓库写入权限的账号才能提交本站更新。
 
-可以通过 `SITE_URL` 环境变量指定生成网址；支持 `https://用户名.github.io/仓库名` 或正式独立域名。`OUTPUT_DIR` 可以指定另一输出目录。
-
-## 文件
-
-| 文件 | 用途 |
-| --- | --- |
-| `.github/workflows/pages.yml` | 构建、检查与自动发布 |
-| `content/site.json` | 站名和演示章节数据 |
-| `build.py` | 生成独立 HTML 页面 |
-| `validate.py` | 检查链接、路径、搜索元数据与订阅文件 |
-| `style.css` | 橙白风格与手机排版 |
-| `app.js` | 搜索、阅读设置、进度与收藏 |
-| `favicon.svg` | 网站图标 |
-
-`dist/` 为构建输出，不需要上传到源码仓库；Actions 会自动生成。
-
-## 官方说明
-
-- [GitHub Pages 自定义工作流](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
-- [设置发布来源](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
-- [管理独立域名](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site)
-
-允许抓取并不保证搜索收录、排名或收录时间。正式正文上线后可向搜索引擎站长平台提交站点地图。
+源码：[azzure0216-netizen/daswohltemperierte](https://github.com/azzure0216-netizen/daswohltemperierte)。
