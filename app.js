@@ -10,7 +10,7 @@
   for (const link of document.querySelectorAll('[data-resume]')) {
     const progress = read().progress?.[link.dataset.resume];
     if (progress && typeof progress.path === 'string' && progress.path.startsWith(BASE + '/read/') && /^\/read\/[^/?#\\]+\/[^/?#\\]+\/$/.test(progress.path.slice(BASE.length))) {
-      link.hidden = false; link.href = progress.path + '#resume'; link.textContent = '继续阅读 · ' + progress.title + ' ↗';
+      link.hidden = false; link.href = progress.path + '#resume'; link.textContent = '继续阅读 · ' + progress.title;
     }
   }
   const search = $('#chapter-search');
@@ -25,7 +25,7 @@
     $('#sort').addEventListener('click', () => {
       reversed = !reversed;
       [...rows].sort((a,b) => reversed ? rows.indexOf(b)-rows.indexOf(a) : rows.indexOf(a)-rows.indexOf(b)).forEach(row => list.appendChild(row));
-      $('#sort').textContent = reversed ? '倒序 ↑' : '正序 ↓'; $('#sort').setAttribute('aria-pressed', String(reversed));
+      $('#sort').textContent = reversed ? '倒序' : '正序'; $('#sort').setAttribute('aria-pressed', String(reversed));
     });
   }
   const main = document.querySelector('[data-chapter]');
