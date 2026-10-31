@@ -1,4 +1,4 @@
-"""Check generated links, canonical URLs and feeds before publishing."""
+"""Check generated links, canonical URLs and sitemap before publishing."""
 from pathlib import Path
 from html.parser import HTMLParser
 from urllib.parse import urlsplit, unquote, quote
@@ -75,10 +75,8 @@ for file, page in pages.items():
 sitemap = ET.parse(OUT / 'sitemap.xml')
 for element in sitemap.getroot().iter('{http://www.sitemaps.org/schemas/sitemap/0.9}loc'):
     assert element.text.startswith(SITE + '/'), ('wrong sitemap URL', element.text)
-feed = ET.parse(OUT / 'feed.xml')
-for element in feed.getroot().iter('link'):
-    assert element.text.startswith(SITE + '/'), ('wrong feed URL', element.text)
+assert not (OUT / 'feed.xml').exists(), 'RSS feed should be disabled'
 assert 'Sitemap: ' + SITE + '/sitemap.xml' in (OUT / 'robots.txt').read_text()
 assert (OUT / '.nojekyll').exists()
 assert not any('chatgpt.site' in p.read_text() for p in OUT.rglob('*') if p.suffix in ('.html','.xml','.txt','.js'))
-print(f'PASS: {len(pages)} pages, internal links, reader paths, search metadata and XML feeds for {SITE}')
+print(f'PASS: {len(pages)} pages, internal links, reader paths, search metadata and sitemap for {SITE}')
