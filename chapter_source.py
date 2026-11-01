@@ -49,3 +49,27 @@ def load_chapters(directory):
             'source_file': str(path.name),
         })
     return chapters
+
+
+def load_single_story(path):
+    """A title-only file is an unpublished work; body text publishes one full story."""
+    path = Path(path)
+    lines = path.read_text(encoding='utf-8-sig').strip().splitlines()
+    if not lines:
+        return []
+    title = re.sub(r'^#{1,6}\s+', '', lines[0].strip()).strip()
+    if not title:
+        raise ValueError(f'{path.name}: 第一行请保留作品标题。')
+    body = [line.strip() for line in lines[1:] if line.strip()]
+    published = ''
+    if body and re.match(r'^(?:日期\s*[:：]|date\s*:)', body[0], re.I):
+        published = re.split(r'[:：]', body.pop(0), maxsplit=1)[1].strip()
+        try:
+            if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', published):
+                raise ValueError('date format')
+            date.fromisoformat(published)
+        except ValueError:
+            raise ValueError(f'{path.name}: 日期请写成 YYYY-MM-DD。') from None
+    if not body:
+        return []
+    return [{'slug':'01','title':title,'date':published,'paragraphs':body,'notice':'','demo':False,'source_file':path.name}]

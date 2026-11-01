@@ -3,13 +3,15 @@ from pathlib import Path
 from html import escape as e
 from xml.sax.saxutils import escape as xe
 from urllib.parse import urlsplit, quote, unquote, urlencode
-from chapter_source import load_chapters
+from chapter_source import load_chapters, load_single_story
 import json, os, re, shutil
 
 ROOT = Path(__file__).parent
 D = json.loads((ROOT / 'content/site.json').read_text())
 for work in D['works']:
-    if work.get('chapters_directory'):
+    if work.get('source_file'):
+        work['chapters'] = load_single_story(ROOT / work['source_file'])
+    elif work.get('chapters_directory'):
         work['chapters'] = load_chapters(ROOT / work['chapters_directory'])
     else:
         for chapter in work['chapters']:
@@ -35,14 +37,14 @@ BASE = parsed_origin.path.rstrip('/')
 pages = []
 def words(ch): return sum(len(p) for p in ch['paragraphs'])
 def url(path): return ORIGIN + quote(path, safe='/%')
-def write(path, body):
+def write(path, body, index=True):
     if BASE:
         body = re.sub(r'(href|src|data-path)="(/(?!/)[^"]*)"', lambda m: m[1]+'="'+BASE+m[2]+'"', body)
     p = OUT / unquote(path.lstrip('/'))
     if path.endswith('/'): p = p / 'index.html'
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(body)
-    if path not in ('/404.html', '/manage/'): pages.append(path)
+    if index and path not in ('/404.html', '/manage/'): pages.append(path)
 def header(active='', quiet=False):
     return f'''<a class="skip" href="#main">跳到正文</a><header class="header {'quiet' if quiet else ''}"><a class="brand" href="/" aria-label="{e(D['name'])}首页"><span class="brand-mark" aria-hidden="true">d.</span><span>{e(D['name'])}</span></a><nav aria-label="主导航"><a {'aria-current="page"' if active=='works' else ''} href="/works/">作品目录</a></nav></header>'''
 def footer():
@@ -58,7 +60,15 @@ DEMO_NOTICE = '<div class="demo-notice">含演示章节；标有“演示”的�
 def wp(w): return '/works/' + quote(w['slug'], safe='') + '/'
 def cp(w,c): return '/read/' + quote(w['slug'], safe='') + '/' + quote(c['slug'], safe='') + '/'
 def cover(w, compact=False):
-    return f'''<div class="book-cover {'compact' if compact else ''}" role="img" aria-label="{e(w['title'])}，{e(D['author'])}"><div class="cover-top">DASWOHLTEMPERIERTE / 001<span>SERIAL FICTION</span></div><div class="cover-light" aria-hidden="true"></div><div class="cover-rule" aria-hidden="true"></div><div class="cover-title"><small>A NOVEL / IN SERIAL</small><strong class="cover-book-title">{e(w['title'].upper())}</strong><span class="cover-author">{e(D['author'])}</span></div><div class="cover-bottom"><span>FICTION — IN SERIAL</span><span>第一卷</span></div></div>'''
+    single = w.get('format') == 'single'
+    number = D['works'].index(w) + 1
+    english = w.get('english_title', w['title']).upper()
+    cover_title = ''.join('<span>'+e(word)+'</span>' for word in english.split()) if single else e(w['title'].upper())
+    top = 'COMPLETE FICTION' if single else 'SERIAL FICTION'
+    kicker = e(w['title']) if single else 'A NOVEL / IN SERIAL'
+    bottom = 'ONE SHOT — COMPLETE' if single else 'FICTION — IN SERIAL'
+    volume = '全文' if single else '第一卷'
+    return f'''<div class="book-cover {'compact' if compact else ''} {'single-cover' if single else ''}" role="img" aria-label="{e(w['title'])}，{e(D['author'])}"><div class="cover-top">DASWOHLTEMPERIERTE / {number:03d}<span>{top}</span></div><div class="cover-light" aria-hidden="true"></div><div class="cover-rule" aria-hidden="true"></div><div class="cover-title"><small>{kicker}</small><strong class="cover-book-title">{cover_title}</strong><span class="cover-author">{e(D['author'])}</span></div><div class="cover-bottom"><span>{bottom}</span><span>{volume}</span></div></div>'''
 def rows(w, limit=None):
     chapters = w['chapters'][:limit] if limit else w['chapters']
     rendered = []
@@ -73,16 +83,51 @@ home = f'''<main id="main"><section class="hero"><div class="hero-intro"><div cl
 write('/',page('首页',D['description'],'/',home))
 workbody=f'''<main id="main"><div class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/works/">作品</a><span>/</span><span>{e(W['title'])}</span></div><section class="work-hero"><div class="work-cover">{cover(W,True)}</div><div class="work-info"><span class="eyebrow">THE SERIAL / 001</span><div class="tags"><span class="accent">{e(W['status'])}</span>{''.join('<span>'+e(t)+'</span>' for t in W.get('tags',[]))}</div><h1>{e(W['title'])}</h1><p class="subtitle">{e(W['subtitle'])}</p><p class="work-description">{e(W['description'])}</p><div class="work-facts"><span>{len(W['chapters'])} 章</span><span>{sum(words(c) for c in W['chapters']):,} 字正文</span><span>{e(D['author'])}</span></div><div class="button-row">{reading_entry(W)}</div></div></section><section id="chapters" class="section contents"><div class="section-heading"><div><span class="eyebrow">TABLE OF CONTENTS</span><h2>章节目录 <small>/ {len(W['chapters']):02d}</small></h2></div><div class="catalog-tools"><label class="search"><span aria-hidden="true">⌕</span><input id="chapter-search" type="search" placeholder="搜索章节" aria-label="搜索章节标题"></label><button class="sort-button" id="sort" aria-label="切换章节排列顺序" aria-pressed="false">正序</button></div></div><p class="volume-label">第一卷 <span>{'· 含演示章节' if HAS_DEMO else ''}</span></p><div class="chapter-table" id="chapter-list">{rows(W)}</div><p id="no-results" class="empty-state" hidden>没有找到这章。试试其他标题或章节号。</p><p id="search-status" class="sr-only" role="status" aria-live="polite"></p>{DEMO_NOTICE}</section></main>'''
 write(wp(W),page(W['title']+' · 作品与目录',W['description'],wp(W),workbody,'works'))
-archive = f'''<main id="main" class="archive-page"><div class="breadcrumb"><a href="/">首页</a><span>/</span><span>作品目录</span></div><div class="page-title"><span class="eyebrow">THE COLLECTION / 01</span><h1>作品目录<span class="accent">.</span></h1><p class="muted">Piastri and Norris</p></div><a class="archive-work" id="chapters" href="{wp(W)}"><div>{cover(W,True)}</div><div><div class="tags"><span class="accent">{e(W['status'])}</span><span>{e(' / '.join(W.get('tags',[])))}</span></div><h2>{e(W['title'])}</h2><p>{e(W['subtitle'])}</p><p class="muted">{e(W['description'])}</p><span class="text-link">{len(W['chapters'])} 个章节 · 进入作品 </span></div></a></main>'''
-write('/works/',page('作品目录','浏览长篇连载、作品介绍与章节目录。','/works/',archive,'works'))
+def archive_card(w, index):
+    single = w.get('format') == 'single'
+    ready = bool(w['chapters'])
+    target = cp(w, w['chapters'][0]) if single and ready else wp(w)
+    subtitle = w.get('english_title', '') if single else w.get('subtitle', '')
+    subtitle_html = '<p class="archive-subtitle">'+e(subtitle)+'</p>' if subtitle else ''
+    description = '<p class="muted">'+e(w['description'])+'</p>' if w.get('description') else ''
+    tags = '<span>'+e(' / '.join(w['tags']))+'</span>' if w.get('tags') else ''
+    if single:
+        action = f"{sum(words(c) for c in w['chapters']):,} 字 · 阅读全文" if ready else '正文待发布'
+    else:
+        action = f"{len(w['chapters'])} 个章节 · 进入作品"
+    return f'''<a class="archive-work {'single-work' if single else ''}" {'id="chapters"' if index == 0 else ''} href="{target}"><div>{cover(w,True)}</div><div><div class="tags"><span class="accent">{e(w['status'])}</span>{tags}</div><h2>{e(w['title'])}</h2>{subtitle_html}{description}<span class="text-link">{action}</span></div></a>'''
+archive = f'''<main id="main" class="archive-page"><div class="breadcrumb"><a href="/">首页</a><span>/</span><span>作品目录</span></div><div class="page-title collection-title"><span class="eyebrow">THE COLLECTION / {len(D['works']):02d}</span><h1>作品目录</h1><p class="muted">Piastri and Norris</p></div><div class="collection-list">{''.join(archive_card(w, i) for i,w in enumerate(D['works']))}</div></main>'''
+write('/works/',page('作品目录','浏览连载小说与单篇完结作品。','/works/',archive,'works'))
+reader_toolbar = '''<div class="reader-toolbar" aria-label="阅读设置"><div><button id="smaller" aria-label="缩小正文" title="缩小正文">A−</button><span id="font-size" aria-live="polite">20</span><button id="larger" aria-label="放大正文" title="放大正文">A＋</button><span class="toolbar-line"></span><button id="font-toggle" aria-label="切换正文字体" aria-pressed="false">宋体</button></div><div><button class="theme-dot night" data-theme-choice="dark" aria-label="夜间阅读" aria-pressed="false"></button><button class="theme-dot paper" data-theme-choice="paper" aria-label="暖纸阅读" aria-pressed="false"></button><button class="theme-dot light" data-theme-choice="light" aria-label="白底阅读" aria-pressed="true"></button><button id="bookmark" aria-label="收藏本章到此浏览器" aria-pressed="false" title="收藏本章">☆</button></div></div>'''
 for idx,c in enumerate(W['chapters']):
     path=cp(W,c)
     prev = f'<a href="{cp(W,W["chapters"][idx-1])}"> 上一章</a>' if idx else '<span class="muted">已是第一章</span>'
     nex = f'<a href="{cp(W,W["chapters"][idx+1])}">下一章 </a>' if idx+1<len(W['chapters']) else '<span class="muted">已读至最新章节</span>'
     options=''.join(f'<a {"aria-current=\"page\"" if x==c else ""} href="{cp(W,x)}"><span>{i:02d}</span>{e(x["title"])}</a>' for i,x in enumerate(W['chapters'],1))
-    body=f'''<div class="reading-progress" aria-hidden="true"><span id="progress-bar"></span></div><main id="main" data-work="{W['slug']}" data-chapter="{c['slug']}" data-title="{e(c['title'])}" data-path="{path}"><div class="reader-top"><a href="{wp(W)}"> {e(W['title'])} / 目录</a><span>CHAPTER {idx+1:02d} / {len(W['chapters']):02d}</span></div><div class="reader-layout"><aside class="reader-sidebar"><span class="eyebrow">本卷目录</span><h2>{e(W['title'])}</h2><nav aria-label="章节目录">{options}</nav><p>慢慢读。<br>故事会在这里等你。</p></aside><div class="reader-column"><header class="chapter-heading"><span class="eyebrow">CHAPTER {idx+1:02d}</span><h1>{e(c['title'])}</h1><p>{(e(c['date'].replace('-','.'))+' <span> / </span>') if c.get('date') else ''}{words(c)} 字 <span> / </span>{chapter_label(c)}</p></header><div class="reader-toolbar" aria-label="阅读设置"><div><button id="smaller" aria-label="缩小正文" title="缩小正文">A−</button><span id="font-size" aria-live="polite">20</span><button id="larger" aria-label="放大正文" title="放大正文">A＋</button><span class="toolbar-line"></span><button id="font-toggle" aria-label="切换正文字体" aria-pressed="false">宋体</button></div><div><button class="theme-dot night" data-theme-choice="dark" aria-label="夜间阅读" aria-pressed="false"></button><button class="theme-dot paper" data-theme-choice="paper" aria-label="暖纸阅读" aria-pressed="false"></button><button class="theme-dot light" data-theme-choice="light" aria-label="白底阅读" aria-pressed="true"></button><button id="bookmark" aria-label="收藏本章到此浏览器" aria-pressed="false" title="收藏本章">☆</button></div></div><article id="chapter-text" class="prose" aria-label="章节正文">{('<p class="sample-note">'+e(c['notice'])+'</p>') if c.get('notice') else ''}{''.join(f'<p>{e(p)}</p>' for p in c['paragraphs'])}</article><div class="chapter-end"><span>— 本章完 —</span><button class="text-link" id="copy-link">复制本章链接 </button></div><nav class="chapter-navigation" aria-label="翻页">{prev}<a href="{wp(W)}#chapters">章节目录</a>{nex}</nav><div class="reader-note">阅读位置与收藏仅保存在当前浏览器。</div></div></div><button class="back-top" id="back-top" aria-label="返回顶部">顶部</button></main>'''
+    body=f'''<div class="reading-progress" aria-hidden="true"><span id="progress-bar"></span></div><main id="main" data-work="{W['slug']}" data-chapter="{c['slug']}" data-title="{e(c['title'])}" data-path="{path}"><div class="reader-top"><a href="{wp(W)}"> {e(W['title'])} / 目录</a><span>CHAPTER {idx+1:02d} / {len(W['chapters']):02d}</span></div><div class="reader-layout"><aside class="reader-sidebar"><span class="eyebrow">本卷目录</span><h2>{e(W['title'])}</h2><nav aria-label="章节目录">{options}</nav><p>慢慢读。<br>故事会在这里等你。</p></aside><div class="reader-column"><header class="chapter-heading"><span class="eyebrow">CHAPTER {idx+1:02d}</span><h1>{e(c['title'])}</h1><p>{(e(c['date'].replace('-','.'))+' <span> / </span>') if c.get('date') else ''}{words(c)} 字 <span> / </span>{chapter_label(c)}</p></header>{reader_toolbar}<article id="chapter-text" class="prose" aria-label="章节正文">{('<p class="sample-note">'+e(c['notice'])+'</p>') if c.get('notice') else ''}{''.join(f'<p>{e(p)}</p>' for p in c['paragraphs'])}</article><div class="chapter-end"><span>— 本章完 —</span><button class="text-link" id="copy-link">复制本章链接 </button></div><nav class="chapter-navigation" aria-label="翻页">{prev}<a href="{wp(W)}#chapters">章节目录</a>{nex}</nav><div class="reader-note">阅读位置与收藏仅保存在当前浏览器。</div></div></div><button class="back-top" id="back-top" aria-label="返回顶部">顶部</button></main>'''
     ld={'@context':'https://schema.org','@type':'Chapter','name':c['title']+chapter_suffix(c),'url':url(path),'inLanguage':'zh-CN','position':idx+1,'isPartOf':{'@type':'Book','name':W['title'],'url':url(wp(W))}}
     write(path,page(c['title']+' · '+W['title'],c['paragraphs'][0],path,body,reader=True,structured=ld))
+# Single-file works keep their own source, reading progress and publishing state.
+for w in D['works'][1:]:
+    if w.get('format') != 'single':
+        raise ValueError('Additional works currently require format=single')
+    ready = bool(w['chapters'])
+    english = w.get('english_title', '')
+    english_html = '<p class="single-english-title">'+e(english)+'</p>' if english else ''
+    description_html = '<p class="work-description">'+e(w['description'])+'</p>' if w.get('description') else ''
+    action = '<div class="button-row">'+reading_entry(w)+'</div>' if ready else '<p class="publication-note">正文待发布</p>'
+    facts = f"{sum(words(c) for c in w['chapters']):,} 字" if ready else '单篇作品'
+    landing = f'''<main id="main"><div class="breadcrumb"><a href="/">首页</a><span>/</span><a href="/works/">作品目录</a><span>/</span><span>{e(w['title'])}</span></div><section class="work-hero single-work-hero"><div class="work-cover">{cover(w,True)}</div><div class="work-info"><span class="eyebrow">ONE SHOT / COMPLETE</span><div class="tags"><span class="accent">{e(w['status'])}</span></div><h1>{e(w['title'])}</h1>{english_html}{description_html}<div class="work-facts"><span>{facts}</span><span>{e(D['author'])}</span></div>{action}</div></section></main>'''
+    description = w.get('description') or w['title']+' / '+english+' · 单篇完结作品'
+    write(wp(w),page(w['title'],description,wp(w),landing,'works',notfound=not ready),index=ready)
+    if not ready:
+        continue
+    c = w['chapters'][0]
+    path = cp(w,c)
+    body = f'''<div class="reading-progress" aria-hidden="true"><span id="progress-bar"></span></div><main id="main" data-work="{e(w['slug'],quote=True)}" data-chapter="{c['slug']}" data-title="{e(c['title'],quote=True)}" data-path="{path}"><div class="reader-top"><a href="/works/">作品目录</a><span>ONE SHOT / COMPLETE</span></div><div class="reader-layout single-story"><div class="reader-column"><header class="chapter-heading"><span class="eyebrow">COMPLETE / FULL TEXT</span><h1>{e(w['title'])}</h1>{english_html}<p>{words(c):,} 字 <span> / </span>已完结</p></header>{reader_toolbar}<article id="chapter-text" class="prose" aria-label="小说全文">{''.join('<p>'+e(p)+'</p>' for p in c['paragraphs'])}</article><div class="chapter-end"><span>— 全文完 —</span><button class="text-link" id="copy-link">复制本文链接</button></div><nav class="chapter-navigation single-navigation" aria-label="阅读导航"><a href="/works/">返回作品目录</a></nav><div class="reader-note">阅读位置与收藏仅保存在当前浏览器。</div></div></div><button class="back-top" id="back-top" aria-label="返回顶部">顶部</button></main>'''
+    ld = {'@context':'https://schema.org','@type':'ShortStory','name':w['title'],'alternateName':english,'url':url(path),'inLanguage':'zh-CN','author':{'@type':'Person','name':D['author']}}
+    write(path,page(w['title'],c['paragraphs'][0],path,body,reader=True,structured=ld))
+
 # The author entry links to GitHub's authenticated editor; this Site stores no tokens.
 REPOSITORY = D.get('repository', 'azzure0216-netizen/daswohltemperierte')
 REPO_URL = 'https://github.com/' + REPOSITORY
@@ -95,11 +140,17 @@ for i, c in enumerate(W['chapters'], 1):
     edit_url = REPO_URL + '/edit/main/' + quote(source_path, safe='/')
     badge = '<em>演示</em>' if c.get('demo') else ''
     manage_rows.append(f'<a class="chapter-row" href="{e(edit_url, quote=True)}" target="_blank" rel="noopener"><span class="chapter-num">{i:02d}</span><span class="chapter-name">{e(c["title"])}{badge}</span><span class="chapter-meta">粘贴／修改正文</span><span class="row-arrow">编辑</span></a>')
-manage_body = f'''<main id="main" class="about-page manage-page"><div class="breadcrumb"><a href="/">首页</a><span>/</span><span>章节管理</span></div><div class="page-title"><span class="eyebrow">WRITE &amp; PUBLISH</span><h1>章节管理<span class="accent">.</span></h1><p class="muted">选一章，粘贴完整正文，再提交发布。</p></div><div class="author-note"><p>编辑和保存将在 GitHub 中完成，需要登录拥有本仓库写入权限的账号。提交到 main 后，网站会自动发布更新。</p><p>当前标注“演示”的章节可以全选替换；第一行写标题，下面直接粘贴正文。</p></div><div class="button-row"><a class="button" href="{e(NEW_URL,quote=True)}" target="_blank" rel="noopener">新增第 {NEXT_NUMBER} 章 </a><a class="button secondary" href="{REPO_URL}/actions" target="_blank" rel="noopener">查看发布进度 </a></div><section class="section"><div class="section-heading"><h2>{e(W['title'])}</h2><span class="muted">{len(W['chapters'])} 个章节文件</span></div><div class="chapter-table">{''.join(manage_rows)}</div></section><section class="section paste-help"><h2>直接按这个格式粘贴</h2><pre>第一章 你的章节标题
+single_manage = []
+for w in D['works'][1:]:
+    edit_url = REPO_URL + '/edit/main/' + quote(w['source_file'], safe='/')
+    ready = bool(w['chapters'])
+    action_text = '修改全文' if ready else '粘贴全文'
+    single_manage.append(f'''<section id="{e(w['slug'],quote=True)}" class="section single-manage"><div class="section-heading"><div><h2>{e(w['title'])}</h2><p class="single-english-title">{e(w.get('english_title',''))}</p></div><span class="muted">单篇 · {e(w['status'])}</span></div><p class="author-note">第一行保留作品标题，下面粘贴完整正文；提交后会自动发布为一篇全文。</p><div class="button-row"><a class="button" href="{e(edit_url,quote=True)}" target="_blank" rel="noopener">{action_text}</a></div></section>''')
+manage_body = f'''<main id="main" class="about-page manage-page"><div class="breadcrumb"><a href="/">首页</a><span>/</span><span>章节管理</span></div><div class="page-title"><span class="eyebrow">WRITE &amp; PUBLISH</span><h1>章节管理<span class="accent">.</span></h1><p class="muted">选一章，粘贴完整正文，再提交发布。</p></div><div class="author-note"><p>编辑和保存将在 GitHub 中完成，需要登录拥有本仓库写入权限的账号。提交到 main 后，网站会自动发布更新。</p><p>当前标注“演示”的章节可以全选替换；第一行写标题，下面直接粘贴正文。</p></div><div class="button-row"><a class="button" href="{e(NEW_URL,quote=True)}" target="_blank" rel="noopener">新增第 {NEXT_NUMBER} 章 </a><a class="button secondary" href="{REPO_URL}/actions" target="_blank" rel="noopener">查看发布进度 </a></div>{''.join(single_manage)}<section class="section"><div class="section-heading"><h2>{e(W['title'])}</h2><span class="muted">{len(W['chapters'])} 个章节文件</span></div><div class="chapter-table">{''.join(manage_rows)}</div></section><section class="section paste-help"><h2>直接按这个格式粘贴</h2><pre>第一章 你的章节标题
 
 这是第一段正文。
 
-这是第二段正文。</pre><p>正文按换行分段，空行可有可无。第一行也可以写成“# 第一章 你的章节标题”。</p><p>修改已有章节：打开后全选文件内容，粘贴完整章节，点击 Commit changes，提交到 main。</p><p>新增章节：入口已填好下一个编号的文件名。保持文件名为数字加 .md，例如 {NEXT_NUMBER:02d}.md，然后粘贴标题和正文。以后尽量保留已发布文件的编号。</p><p>可选：在标题下方写“日期：2026-10-31”；日期不填也可以发布。</p><p>保存后到“查看发布进度”等待绿色勾号，再回网站刷新。没有提交的编辑不会出现在网站上。</p></section><div class="button-row"><a class="text-link" href="{wp(W)}">返回作品目录 </a></div></main><style>.manage-page{{padding-bottom:65px}}.author-note{{color:var(--muted);font-size:13px;line-height:2}}.author-note p+p{{margin-top:12px}}.paste-help h2{{font-size:24px;font-family:serif;margin-bottom:25px}}.paste-help pre{{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--surface);border:1px solid var(--line);padding:22px;font:14px/2 sans-serif;margin-bottom:25px}}.paste-help p{{font-size:13px;line-height:2;color:var(--muted);margin:15px 0}}.manage-page .section-heading>.muted{{display:block}}.manage-page .chapter-name{{overflow-wrap:anywhere}}@media(max-width:700px){{.manage-page{{margin-left:24px;margin-right:24px}}.manage-page .button-row{{align-items:stretch}}.manage-page .button{{gap:12px}}.manage-page .section-heading>.muted{{font-size:10px;white-space:nowrap}}}}</style>'''
+这是第二段正文。</pre><p>正文按换行分段，空行可有可无。第一行也可以写成“# 第一章 你的章节标题”。</p><p>修改已有章节：打开后全选文件内容，粘贴完整章节，点击 Commit changes，提交到 main。</p><p>新增章节：入口已填好下一个编号的文件名。保持文件名为数字加 .md，例如 {NEXT_NUMBER:02d}.md，然后粘贴标题和正文。以后尽量保留已发布文件的编号。</p><p>可选：在标题下方写“日期：2026-10-31”；日期不填也可以发布。</p><p>保存后到“查看发布进度”等待绿色勾号，再回网站刷新。没有提交的编辑不会出现在网站上。</p></section><div class="button-row"><a class="text-link" href="/works/">返回作品目录 </a></div></main><style>.manage-page{{padding-bottom:65px}}.author-note{{color:var(--muted);font-size:13px;line-height:2}}.author-note p+p{{margin-top:12px}}.paste-help h2{{font-size:24px;font-family:serif;margin-bottom:25px}}.paste-help pre{{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--surface);border:1px solid var(--line);padding:22px;font:14px/2 sans-serif;margin-bottom:25px}}.paste-help p{{font-size:13px;line-height:2;color:var(--muted);margin:15px 0}}.manage-page .section-heading>.muted{{display:block}}.manage-page .chapter-name{{overflow-wrap:anywhere}}@media(max-width:700px){{.manage-page{{margin-left:24px;margin-right:24px}}.manage-page .button-row{{align-items:stretch}}.manage-page .button{{gap:12px}}.manage-page .section-heading>.muted{{font-size:10px;white-space:nowrap}}}}</style>'''
 write('/manage/', page('章节管理', '选择章节，进入 GitHub 编辑器粘贴正文并发布。', '/manage/', manage_body, notfound=True))
 write('/404.html',page('这一页暂时没有故事','页面不存在，请回到作品目录。','/404.html','<main id="main" class="not-found"><span class="eyebrow">404 / PAGE NOT FOUND</span><h1>这一页，<br>还没有故事。</h1><p>地址可能有误，也可能是章节尚未发布。</p><a class="button" href="/works/">回到作品目录 </a></main>',notfound=True))
 (OUT/'robots.txt').write_text('User-agent: *\nAllow: /\nSitemap: '+url('/sitemap.xml')+'\n')
