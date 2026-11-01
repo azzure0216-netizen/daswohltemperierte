@@ -36,5 +36,8 @@
 .footer .author-mark{position:relative;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;margin-left:auto;color:var(--muted);opacity:.45}.author-mark>span{display:block;width:5px;height:5px;border:1px solid currentColor;border-radius:50%}.footer .author-mark:hover,.footer .author-mark:focus-visible{opacity:1;color:var(--accent)}.author-mark::after{content:attr(data-label);position:absolute;right:0;bottom:calc(100% + 5px);padding:5px 8px;border:1px solid var(--line);background:var(--bg);color:var(--muted);font-size:10px;letter-spacing:.5px;white-space:nowrap;opacity:0;pointer-events:none;transform:translateY(3px);transition:opacity .15s,transform .15s}.author-mark:hover::after,.author-mark:focus-visible::after{opacity:1;transform:none}
 
 /* Let the longer fanfic credit wrap cleanly on small screens. */
-.hero-bottom{flex-wrap:wrap;gap:14px 24px}.hero-bottom a{max-width:100%;line-height:1.8;overflow-wrap:anywhere}
-@media(max-width:700px){.hero-bottom{align-items:flex-start;gap:12px}.hero-bottom>a{flex-basis:100%}}
+.hero-bottom{flex-wrap:wrap;gap:14px 24px}.hero-bottom a,.hero-bottom .site-credit{max-width:100%;line-height:1.8;overflow-wrap:anywhere}
+@media(max-width:700px){.hero-bottom{align-items:flex-start;gap:12px}.hero-bottom>a,.hero-bottom>.site-credit{flex-basis:100%}}
+
+/* Keep the site credit visible as text after simplifying homepage links. */
+.hero-bottom .site-credit{letter-spacing:1px}

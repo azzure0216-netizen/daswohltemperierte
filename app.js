@@ -7,12 +7,18 @@
   const $ = s => document.querySelector(s);
   let timer;
   function toast(text) { const t = $('#toast'); t.textContent = text; t.classList.add('visible'); clearTimeout(timer); timer = setTimeout(() => t.classList.remove('visible'), 2600); }
-  for (const link of document.querySelectorAll('[data-resume]')) {
-    const progress = read().progress?.[link.dataset.resume];
-    if (progress && typeof progress.path === 'string' && progress.path.startsWith(BASE + '/read/') && /^\/read\/[^/?#\\]+\/[^/?#\\]+\/$/.test(progress.path.slice(BASE.length))) {
-      link.hidden = false; link.href = progress.path + '#resume'; link.textContent = '继续阅读 · ' + progress.title;
+  function updateReadingEntries() {
+    for (const link of document.querySelectorAll('[data-resume]')) {
+      const progress = read().progress?.[link.dataset.resume];
+      if (progress && typeof progress.path === 'string' && progress.path.startsWith(BASE + '/read/') && /^\/read\/[^/?#\\]+\/[^/?#\\]+\/$/.test(progress.path.slice(BASE.length))) {
+        link.hidden = false; link.href = progress.path + '#resume';
+        link.textContent = link.hasAttribute('data-reading-entry') ? '继续阅读' : '继续阅读 · ' + progress.title;
+        link.setAttribute('aria-label', '继续阅读 · ' + progress.title);
+      }
     }
   }
+  updateReadingEntries();
+  window.addEventListener('pageshow', updateReadingEntries);
   const search = $('#chapter-search');
   if (search) {
     const list = $('#chapter-list'), rows = [...list.querySelectorAll('.chapter-row')];
