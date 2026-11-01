@@ -41,3 +41,13 @@
 
 /* Keep the site credit visible as text after simplifying homepage links. */
 .hero-bottom .site-credit{letter-spacing:1px}
+
+/* Linked cover, industrial work heading and a compact serial label. */
+.current .work-title-row{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px 14px;margin:15px 0 12px}
+.current .work-title{font-family:"Orbitron","Arial Black",sans-serif;font-size:42px;font-weight:800;letter-spacing:-.025em;line-height:1.35;margin:0}
+.current .work-title a{display:inline-block}
+.current .serial-status{font-size:12px;font-weight:400;letter-spacing:.08em;color:var(--accent);white-space:nowrap}
+.current .work-summary .work-subtitle{font-size:19px;line-height:1.8;margin-bottom:8px;color:var(--ink)}
+.chapter-count-link{display:block;width:max-content;max-width:100%;border-bottom:1px solid var(--accent);padding-bottom:4px;margin-bottom:7px}
+.chapter-count-link:hover strong,.chapter-count-link:focus-visible strong{color:var(--accent)}
+@media(max-width:700px){.current .work-title{font-size:30px}.current .work-title-row{gap:8px 12px}.current .serial-status{font-size:11px}.current .work-summary .work-subtitle{font-size:17px}}
