@@ -60,7 +60,9 @@ def load_single_story(path):
     title = re.sub(r'^#{1,6}\s+', '', lines[0].strip()).strip()
     if not title:
         raise ValueError(f'{path.name}: 第一行请保留作品标题。')
-    body = [line.strip() for line in lines[1:] if line.strip()]
+    body = [line.strip() for line in lines[1:]]
+    while body and not body[0]:
+        body.pop(0)
     published = ''
     if body and re.match(r'^(?:日期\s*[:：]|date\s*:)', body[0], re.I):
         published = re.split(r'[:：]', body.pop(0), maxsplit=1)[1].strip()
@@ -70,6 +72,11 @@ def load_single_story(path):
             date.fromisoformat(published)
         except ValueError:
             raise ValueError(f'{path.name}: 日期请写成 YYYY-MM-DD。') from None
-    if not body:
+    while body and not body[0]:
+        body.pop(0)
+    while body and not body[-1]:
+        body.pop()
+    paragraphs = [line for line in body if line]
+    if not paragraphs:
         return []
-    return [{'slug':'01','title':title,'date':published,'paragraphs':body,'notice':'','demo':False,'source_file':path.name}]
+    return [{'slug':'01','title':title,'date':published,'paragraphs':paragraphs,'blocks':body,'notice':'','demo':False,'source_file':path.name}]

@@ -94,3 +94,6 @@
  .collection-list .book-cover.single-cover .cover-title{top:31%}
  .collection-list .book-cover.single-cover .cover-book-title{font-size:clamp(13px,20cqw,24px);line-height:1.35;letter-spacing:.015em}
 }
+
+/* Preserve the intentional blank paragraphs imported with a single full story. */
+.single-story .prose .scene-break{height:1.5em}

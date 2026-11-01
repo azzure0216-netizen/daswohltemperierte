@@ -24,6 +24,7 @@ class SingleWorkTests(unittest.TestCase):
             self.assertEqual(story['title'], '杀手杰克')
             self.assertEqual(story['date'], '2026-11-01')
             self.assertEqual(story['paragraphs'], ['第一段。', '第二段。'])
+            self.assertEqual(story['blocks'], ['第一段。', '', '第二段。'])
             path.write_text('杀手杰克\n日期：2026-02-30\n正文。', encoding='utf-8')
             with self.assertRaises(ValueError):
                 load_single_story(path)
@@ -67,6 +68,7 @@ class SingleWorkTests(unittest.TestCase):
             self.assertIn('data-base="/daswohltemperierte"', reader)
             self.assertIn('&lt;script&gt;alert(1)&lt;/script&gt;', reader)
             self.assertIn('— 全文完 —', reader)
+            self.assertIn('class="scene-break"', reader)
             self.assertNotIn('下一章', reader)
             self.assertIn('ShortStory', reader)
             self.assertIn('/read/killer-jack/01/', (output / 'sitemap.xml').read_text())
