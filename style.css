@@ -97,3 +97,7 @@
 
 /* Preserve the intentional blank paragraphs imported with a single full story. */
 .single-story .prose .scene-break{height:1.5em}
+
+/* A full-story entrance uses the same summary layout as the serial. */
+.home-single-work .full-story-link strong{font-family:"PingFang SC","Microsoft YaHei",sans-serif;font-size:30px;font-weight:500;letter-spacing:.05em;line-height:1.4}
+@media(max-width:700px){.home-single-work .full-story-link strong{font-size:26px}}
